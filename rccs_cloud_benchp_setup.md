@@ -1,0 +1,70 @@
+#### Log to compute node ####
+ssh seydou.ba@login.cloud.r-ccs.riken.jp
+#Interactive job
+srun -N 1 -p fx700 -t 02:30:00 --pty bash
+#Load Env variables (Depends on the compute node)
+module load system/fx700 FJSVstclanga # on fx700
+
+### clone benchpark repository ###
+git clone https:/github.com/SBA0486/benchpark.git
+cd benchpark
+
+### Load Python 3.8 or later, if available ###
+. workbench/spack/share/spack/setup-env.sh
+spack load py-pip
+pip install -r requirements
+
+### Otherwise, there is a python3.11 in /usr ###
+# it is enough to init benchpark, however it does not work when setting experiments with ramble
+# Work-around to install python and pip with benchpark's spack instance with ./check_python.sh
+
+bash python_install.sh
+
+# export PATH with installed python
+WSDIR="$(pwd)/wkspace"
+python_dir="$(dirname "$(find ${WSDIR}/spack/opt/spack/linux-rhel8-a64fx/gcc-8.5.0/python-venv-1.0*/bin -name 'virtualenv')")"
+export PATH=${python_dir}:$PATH
+
+### Setup benchpark system (riken-fugaku) and experiment (saxpy) in workspace directory (wkspace) ###
+export SYS="riken-fugaku"
+export SYS_DEST="${SYS}-cloud"
+export BM="saxpy"
+export BM_DEST="${BM}-test"
+export WSDIR="$(pwd)/wkspace"
+
+. setup-env.sh
+benchpark system init --dest=${SYS_DEST} ${SYS} cluster=rccs_cloud
+benchpark experiment init --dest=${BM_DEST} ${BM} +openmp
+benchpark setup ${BM_DEST} ${SYS_DEST} ${WSDIR}
+
+. ${WSDIR}/setup.sh
+ramble --disable-progress-bar --workspace-dir ${WSDIR}/${BM_DEST}/${SYS_DEST}/workspace workspace setup
+
+### try different experiment, qws ###
+# Uncomment edit option to remove SYSLIBS which was defined for fugaku
+sed -i -e 's@\# filter_file@filter_file@g' repo/qws/package.py
+
+export BM="qws"
+export BM_DEST="${BM}-test"
+
+. setup-env.sh
+benchpark experiment init --dest=${BM_DEST} ${BM} +openmp
+benchpark setup ${BM_DEST} ${SYS_DEST} ${WSDIR}
+
+. ${WSDIR}/setup.sh
+ramble --disable-progress-bar --workspace-dir ${WSDIR}/${BM_DEST}/${SYS_DEST}/workspace workspace setup
+
+
+# try building amg2023 with gcc compiler
+# Since building openmpi fails due to hwloc, which is required by pmix (dependency hwloc > pmix > openmi), import openmpi as external
+sed -i -e 's"openmpi@5.0.8"openmpi@<version>"g' systems/riken-fugaku/system.py
+sed -i -e 's"/home/users/seydou.ba/packages/openmpi-5.0.8"<openmpi_path>"g' systems/riken-fugaku/system.py
+
+export BM="amg2023"
+export BM_DEST="${BM}-test"
+export SYS_DEST="${SYS}-cloud-gcc"
+benchpark system init --dest=${SYS_DEST} ${SYS} cluster=rccs_cloud compiler=gcc
+benchpark setup ${BM_DEST} ${SYS_DEST} ${WSDIR}
+. ${WSDIR}/setup.sh
+ramble --disable-progress-bar --workspace-dir ${WSDIR}/${BM_DEST}/${SYS_DEST}/workspace workspace setup
+

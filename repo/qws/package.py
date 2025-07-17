@@ -26,6 +26,7 @@ class Qws(MakefilePackage):
 
     def edit(self, spec, prefix):
         makefile = join_path(self.stage.source_path, "Makefile")
+        
         if "+mpi" not in spec:
             filter_file("^mpi", "#mpi", makefile)
             filter_file(r"\s+CC\s+=.*", f"CC = {spack_cc}", makefile)
@@ -41,6 +42,9 @@ class Qws(MakefilePackage):
         if spec.satisfies("%fj"):
             filter_file(r"^compiler.*=.*", "compiler = fujitsu_native", makefile)
             filter_file(r"^clang.*=.*", "clang =1", makefile)
+            # For rccs-cloud node, need to find distinction with regards fugaku node
+            # filter_file(r"\s+SYSLIBS\s+=.*", "\tSYSLIBS = ", makefile)
+
         if spec.satisfies("%clang") or spec.satisfies("%gcc"):
             filter_file(r"^compiler.*=.*", f"compiler = {'openmpi-' if '+mpi' in spec else ''}gnu", makefile)
             filter_file(r"\s+CFLAGS\s+=.*", f"CFLAGS = -O3 -ffast-math -Wno-implicit-function-declaration", makefile)
