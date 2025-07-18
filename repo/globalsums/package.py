@@ -1,7 +1,7 @@
 
 from spack.package import *
 
-class Globalsums(MakefilePackage):
+class Globalsums(CMakePackage):
     """ Test example Globalsums """
 
     homepage = "https://github.com/lanl/GlobalSums/tree/b4b71b8cd1492aafeddfea97410e1147b96d789d"
