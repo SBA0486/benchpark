@@ -22,6 +22,8 @@ git checkout hackathon
 # it is enough to init benchpark, however it does not work when setting experiments with ramble
 # Work-around to install python and pip with benchpark's spack instance with ./check_python.sh
 
+python3.11 -m ensurepip --upgrade
+python3.11 -m pip install -r requirements
 bash rccs_cloud_py_install.sh
 
 # export PATH with installed python
